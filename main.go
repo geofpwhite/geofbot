@@ -50,6 +50,7 @@ func handleEcho(s *discordgo.Session, i *discordgo.InteractionCreate, opts optio
 
 func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(m.Content)
+	s.ChannelMessageSendReply(m.ChannelID, "shut up man", m.MessageReference)
 }
 
 var commands = []*discordgo.ApplicationCommand{
