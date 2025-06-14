@@ -105,6 +105,8 @@ func main() {
 			return
 		case "echo":
 			handleEcho(s, i, parseOptions(data.Options))
+		case "blackjack":
+			onInteractionCreate(s, i)
 		}
 
 	})
@@ -113,6 +115,7 @@ func main() {
 		log.Printf("Logged in as %s", r.User.String())
 	})
 
+	session.AddHandler(onInteractionCreate)
 	session.AddHandler(handleMessage)
 
 	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
@@ -132,5 +135,24 @@ func main() {
 	err = session.Close()
 	if err != nil {
 		log.Printf("could not close session gracefully: %s", err)
+	}
+
+}
+func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Only care about component (e.g. button) interactions
+	if i.Type != discordgo.InteractionMessageComponent {
+		return
+	}
+
+	data := i.MessageComponentData()
+	switch data.CustomID {
+	case "press_me_button":
+		// Acknowledge & reply
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "You pressed the button! 🎉",
+			},
+		})
 	}
 }
