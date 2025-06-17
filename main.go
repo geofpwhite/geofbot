@@ -133,9 +133,9 @@ func main() {
 }
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Only care about component (e.g. button) interactions
-	if i.Type != discordgo.InteractionMessageComponent {
-		return
-	}
+	// if i.Type != discordgo.InteractionMessageComponent {
+	// 	return
+	// }
 	fmt.Println(s, i)
 
 	data := i.MessageComponentData()
