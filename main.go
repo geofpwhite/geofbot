@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -86,7 +88,7 @@ func main() {
 	}
 
 	session, _ := discordgo.New("Bot " + *Token)
-
+	session.AddHandler(handleButton)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type != discordgo.InteractionApplicationCommand {
 			return
@@ -99,7 +101,7 @@ func main() {
 		case "echo":
 			handleEcho(s, i, parseOptions(data.Options))
 		case "blackjack":
-			handleBlackjack(s, i)
+			handleBlackjack(s, i, parseOptions(data.Options))
 		}
 
 	})
@@ -108,7 +110,7 @@ func main() {
 		log.Printf("Logged in as %s", r.User.String())
 	})
 
-	// session.AddHandler(onInteractionCreate)
+	session.AddHandler(onInteractionCreate)
 	// session.AddHandler(handleMessage)
 
 	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
@@ -131,11 +133,15 @@ func main() {
 	}
 
 }
-func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Only care about component (e.g. button) interactions
-	// if i.Type != discordgo.InteractionMessageComponent {
-	// 	return
-	// }
+	s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
+		Image: &discordgo.MessageEmbedImage{},
+	}, i.Message.MessageReference)
+
+	if i.Type != discordgo.InteractionMessageComponent {
+		return
+	}
 	fmt.Println(s, i)
 
 	data := i.MessageComponentData()
@@ -149,4 +155,56 @@ func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			},
 		})
 	}
+}
+
+func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
+	sendCounterMessage(s, i.Message.Content)
+}
+func sendCounterMessage(s *discordgo.Session, ch string) {
+	const start = 0
+
+	msg := &discordgo.MessageSend{
+		Content: fmt.Sprintf("🔢 Count: **%d**", start),
+		Components: []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.Button{
+						Style:    discordgo.PrimaryButton, // style 1 → sends interaction!
+						Label:    "Increment",
+						CustomID: "inc-btn", // must be non-empty & ≤100 chars
+					},
+				},
+			},
+		},
+	}
+	s.ChannelMessageSendComplex(ch, msg)
+}
+func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Ensure this is a component, not a slash command, modal, etc.
+	if i.Type != discordgo.InteractionMessageComponent {
+		return
+	}
+	data := i.MessageComponentData()
+
+	if data.CustomID != "inc-btn" {
+		return
+	}
+
+	// Parse the old count out of the message content.
+	re := regexp.MustCompile(`Count:\s\*\*(\d+)\*\*`)
+	matches := re.FindStringSubmatch(i.Message.Content)
+	count := 0
+	if len(matches) == 2 {
+		count, _ = strconv.Atoi(matches[1])
+	}
+	count++
+
+	// 1️⃣ ACK the click so the client stops spinning
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseUpdateMessage,
+		Data: &discordgo.InteractionResponseData{
+			Content:    fmt.Sprintf("🔢 Count: **%d**", count),
+			Components: i.Message.Components, // keep the same button row
+		},
+	})
 }
