@@ -137,7 +137,7 @@ func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Only care about component (e.g. button) interactions
 	s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
 		Image: &discordgo.MessageEmbedImage{},
-	}, i.Message.MessageReference)
+	}, i.Message.Reference())
 
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
