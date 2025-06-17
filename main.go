@@ -48,15 +48,6 @@ func handleEcho(s *discordgo.Session, i *discordgo.InteractionCreate, opts optio
 	}
 }
 
-func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	fmt.Println(m.Content)
-	if m.Author.Username == "geofbot" {
-		return
-	}
-	ms, err := s.ChannelMessageSendReply(m.ChannelID, "shut up man", m.Reference())
-	fmt.Println(ms, err)
-}
-
 var commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "echo",
@@ -74,6 +65,11 @@ var commands = []*discordgo.ApplicationCommand{
 				Type:        discordgo.ApplicationCommandOptionBoolean,
 			},
 		},
+	},
+	{
+		Name:        "blackjack",
+		Description: "play blackjack",
+		Options:     []*discordgo.ApplicationCommandOption{},
 	},
 }
 
@@ -97,16 +93,13 @@ func main() {
 		}
 
 		data := i.ApplicationCommandData()
-		if data.Name != "echo" {
-			return
-		}
 		switch data.Name {
 		default:
 			return
 		case "echo":
 			handleEcho(s, i, parseOptions(data.Options))
-		case "blackjack":
-			onInteractionCreate(s, i)
+			// case "blackjack":
+			// 	handleBlackjack(s, i, parseOptions(data.Options))
 		}
 
 	})
@@ -116,7 +109,7 @@ func main() {
 	})
 
 	session.AddHandler(onInteractionCreate)
-	session.AddHandler(handleMessage)
+	// session.AddHandler(handleMessage)
 
 	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
 	if err != nil {
@@ -143,6 +136,7 @@ func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
 	}
+	fmt.Println(s, i)
 
 	data := i.MessageComponentData()
 	switch data.CustomID {
