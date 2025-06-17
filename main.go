@@ -174,6 +174,16 @@ func sendCounterMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om
 						Label:    "Increment",
 						CustomID: "inc-btn", // must be non-empty & ≤100 chars
 					},
+					discordgo.Button{
+						Style:    discordgo.DangerButton,
+						Label:    "Hit",
+						CustomID: "hit-btn",
+					},
+					discordgo.Button{
+						Style:    discordgo.DangerButton,
+						Label:    "Stay",
+						CustomID: "stay-btn",
+					},
 				},
 			},
 		},
@@ -203,7 +213,6 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		count, _ = strconv.Atoi(matches[1])
 	}
 	count++
-
 	// 1️⃣ ACK the click so the client stops spinning
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
