@@ -110,7 +110,7 @@ func main() {
 		log.Printf("Logged in as %s", r.User.String())
 	})
 
-	session.AddHandler(onInteractionCreate)
+	// session.AddHandler(onInteractionCreate)
 	// session.AddHandler(handleMessage)
 
 	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
@@ -133,29 +133,30 @@ func main() {
 	}
 
 }
-func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	// Only care about component (e.g. button) interactions
-	s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
-		Image: &discordgo.MessageEmbedImage{},
-	}, i.Message.Reference())
 
-	if i.Type != discordgo.InteractionMessageComponent {
-		return
-	}
-	fmt.Println(s, i)
+/* func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+// Only care about component (e.g. button) interactions
+s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
+	Image: &discordgo.MessageEmbedImage{},
+}, i.Message.Reference())
 
-	data := i.MessageComponentData()
-	switch data.CustomID {
-	case "press_me_button":
-		// Acknowledge & reply
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "You pressed the button! 🎉",
-			},
-		})
-	}
+if i.Type != discordgo.InteractionMessageComponent {
+	return
 }
+fmt.Println(s, i)
+
+data := i.MessageComponentData()
+switch data.CustomID {
+case "press_me_button":
+	// Acknowledge & reply
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "You pressed the button! 🎉",
+		},
+	})
+} */
+// }
 
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	sendCounterMessage(s, i.Message.Content)
