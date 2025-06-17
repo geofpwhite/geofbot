@@ -178,7 +178,11 @@ func sendCounterMessage(s *discordgo.Session) {
 			},
 		},
 	}
-	s.ChannelMessageSendComplex("new counter", msg)
+	m, err := s.ChannelMessageSendComplex("new counter", msg)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(m)
 }
 func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Ensure this is a component, not a slash command, modal, etc.
