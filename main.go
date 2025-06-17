@@ -98,8 +98,8 @@ func main() {
 			return
 		case "echo":
 			handleEcho(s, i, parseOptions(data.Options))
-			// case "blackjack":
-			// 	handleBlackjack(s, i, parseOptions(data.Options))
+		case "blackjack":
+			handleBlackjack(s, i)
 		}
 
 	})
@@ -108,7 +108,7 @@ func main() {
 		log.Printf("Logged in as %s", r.User.String())
 	})
 
-	session.AddHandler(onInteractionCreate)
+	// session.AddHandler(onInteractionCreate)
 	// session.AddHandler(handleMessage)
 
 	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
@@ -131,7 +131,7 @@ func main() {
 	}
 
 }
-func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Only care about component (e.g. button) interactions
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
