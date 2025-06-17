@@ -159,9 +159,9 @@ case "press_me_button":
 // }
 
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
-	sendCounterMessage(s)
+	sendCounterMessage(s, i, om)
 }
-func sendCounterMessage(s *discordgo.Session) {
+func sendCounterMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	const start = 0
 
 	msg := &discordgo.MessageSend{
@@ -178,7 +178,7 @@ func sendCounterMessage(s *discordgo.Session) {
 			},
 		},
 	}
-	m, err := s.ChannelMessageSendComplex("new counter", msg)
+	m, err := s.ChannelMessageSendComplex(i.ChannelID, msg)
 	if err != nil {
 		fmt.Println(err)
 	}
