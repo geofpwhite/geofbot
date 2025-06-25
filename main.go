@@ -159,21 +159,35 @@ case "press_me_button":
 // }
 
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
-	sendCounterMessage(s, i, om)
+	blackjackMessage(s, i, om)
 }
-func sendCounterMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
-	const start = 0
+
+func newDeck() []string {
+	return []string{
+		"2", "2", "2", "2",
+		"3", "3", "3", "3",
+		"4", "4", "4", "4",
+		"5", "5", "5", "5",
+		"6", "6", "6", "6",
+		"7", "7", "7", "7",
+		"8", "8", "8", "8",
+		"9", "9", "9", "9",
+		"10", "10", "10", "10",
+		"J", "J", "J", "J",
+		"Q", "Q", "Q", "Q",
+		"K", "K", "K", "K",
+		"A", "A", "A", "A",
+	}
+}
+
+func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
+	dealerCards, playerCards := []string{}, []string{}
 
 	msg := &discordgo.MessageSend{
-		Content: fmt.Sprintf("🔢 Count: **%d**", start),
+		Content: fmt.Sprintf("Dealer Cards: **%p**\r\nPlayer Cards: **%v**", dealerCards, playerCards),
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
-					discordgo.Button{
-						Style:    discordgo.PrimaryButton, // style 1 → sends interaction!
-						Label:    "Increment",
-						CustomID: "inc-btn", // must be non-empty & ≤100 chars
-					},
 					discordgo.Button{
 						Style:    discordgo.DangerButton,
 						Label:    "Hit",
@@ -201,8 +215,7 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 	data := i.MessageComponentData()
 
-	if data.CustomID != "inc-btn" {
-		return
+	switch data.CustomID {
 	}
 
 	// Parse the old count out of the message content.
