@@ -184,7 +184,7 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	dealerCards, playerCards := []string{}, []string{}
 
 	msg := &discordgo.MessageSend{
-		Content: fmt.Sprintf("Dealer Cards: **%p**\r\nPlayer Cards: **%v**", dealerCards, playerCards),
+		Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
