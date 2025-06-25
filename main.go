@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"regexp"
@@ -162,7 +163,9 @@ func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om op
 	blackjackMessage(s, i, om)
 }
 
-func newDeck() []string {
+type deck []string
+
+func newDeck() deck {
 	return []string{
 		"2", "2", "2", "2",
 		"3", "3", "3", "3",
@@ -180,9 +183,28 @@ func newDeck() []string {
 	}
 }
 
+func (d deck) shuffle() {
+	// Implement a simple shuffle algorithm, e.g., Fisher-Yates
+	for i := len(d) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		d[i], d[j] = d[j], d[i]
+	}
+}
+func (d deck) deal() string {
+	if len(d) == 0 {
+		return ""
+	}
+	card := d[0]
+	d = d[1:]
+	return card
+}
+
 func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	dealerCards, playerCards := []string{}, []string{}
-
+	deck := newDeck()
+	deck.shuffle()
+	dealerCards = append(dealerCards, deck.deal(), deck.deal())
+	playerCards = append(playerCards, deck.deal(), deck.deal())
 	msg := &discordgo.MessageSend{
 		Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
 		Components: []discordgo.MessageComponent{
