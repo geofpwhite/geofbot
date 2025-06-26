@@ -277,12 +277,23 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	deck.shuffle()
 	dealerCards = append(dealerCards, deck.deal(), deck.deal())
 	playerCards = append(playerCards, deck.deal(), deck.deal())
-	games[i.User.ID] = &game{
-		PlayerID:    i.User.ID,
-		Deck:        deck,
-		DealerCards: dealerCards,
-		PlayerCards: playerCards,
-		Result:      "Playing",
+	if i.User == nil {
+		games[i.User.ID] = &game{
+			PlayerID:    i.Member.User.ID,
+			Deck:        deck,
+			DealerCards: dealerCards,
+			PlayerCards: playerCards,
+			Result:      "Playing",
+		}
+	} else {
+
+		games[i.User.ID] = &game{
+			PlayerID:    i.User.ID,
+			Deck:        deck,
+			DealerCards: dealerCards,
+			PlayerCards: playerCards,
+			Result:      "Playing",
+		}
 	}
 	msg := &discordgo.MessageSend{
 		Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
