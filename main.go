@@ -278,7 +278,7 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	dealerCards = append(dealerCards, deck.deal(), deck.deal())
 	playerCards = append(playerCards, deck.deal(), deck.deal())
 	if i.User == nil {
-		games[i.User.ID] = &game{
+		games[i.Member.User.ID] = &game{
 			PlayerID:    i.Member.User.ID,
 			Deck:        deck,
 			DealerCards: dealerCards,
