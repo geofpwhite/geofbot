@@ -25,7 +25,9 @@ type game struct {
 }
 
 func (g *game) hit() (int, int) {
-	g.PlayerCards = append(g.PlayerCards, g.Deck.deal())
+	playerCard, newDeck := g.Deck.deal()
+	g.PlayerCards = append(g.PlayerCards, playerCard)
+	g.Deck = newDeck
 	return g.react(true)
 }
 
@@ -50,7 +52,9 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	}
 	dealerHit := false
 	if dealerScore < 17 || (dealerScore == 17 && slices.Contains(g.DealerCards, "A")) {
-		g.DealerCards = append(g.DealerCards, g.Deck.deal())
+		dealerCard, newDeck := g.Deck.deal()
+		g.DealerCards = append(g.DealerCards, dealerCard)
+		g.Deck = newDeck
 		dealerHit = true
 	}
 	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
@@ -262,21 +266,28 @@ func (d deck) shuffle() {
 		d[i], d[j] = d[j], d[i]
 	}
 }
-func (d deck) deal() string {
+func (d deck) deal() (string, deck) {
 	if len(d) == 0 {
-		return ""
+		return "", d
 	}
 	card := d[0]
 	d = d[1:]
-	return card
+	return card, d
 }
 
 func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	dealerCards, playerCards := []string{}, []string{}
 	deck := newDeck()
 	deck.shuffle()
-	dealerCards = append(dealerCards, deck.deal(), deck.deal())
-	playerCards = append(playerCards, deck.deal(), deck.deal())
+	dealerCard, deck := deck.deal()
+	playerCard, deck := deck.deal()
+
+	dealerCards = append(dealerCards, dealerCard)
+	playerCards = append(playerCards, playerCard)
+	dealerCard, deck = deck.deal()
+	playerCard, deck = deck.deal()
+	dealerCards = append(dealerCards, dealerCard)
+	playerCards = append(playerCards, playerCard)
 	if i.User == nil {
 		games[i.Member.User.ID] = &game{
 			PlayerID:    i.Member.User.ID,
@@ -348,7 +359,7 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	case "PlayerWin":
 		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, playerScore)
 	}
-	fmt.Println(game)
+	fmt.Println(game.PlayerCards, game.DealerCards)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
