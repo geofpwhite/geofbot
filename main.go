@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"slices"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -100,33 +99,6 @@ func parseOptions(options []*discordgo.ApplicationCommandInteractionDataOption) 
 	return
 }
 
-func interactionAuthor(i *discordgo.Interaction) *discordgo.User {
-	if i.Member != nil {
-		return i.Member.User
-	}
-	return i.User
-}
-
-func handleEcho(s *discordgo.Session, i *discordgo.InteractionCreate, opts optionMap) {
-	builder := new(strings.Builder)
-	if v, ok := opts["author"]; ok && v.BoolValue() {
-		author := interactionAuthor(i.Interaction)
-		builder.WriteString("**" + author.String() + "** says: ")
-	}
-	builder.WriteString(opts["message"].StringValue())
-
-	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: builder.String(),
-		},
-	})
-
-	if err != nil {
-		log.Panicf("could not respond to interaction: %s", err)
-	}
-}
-
 var commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "echo",
@@ -175,8 +147,6 @@ func main() {
 		switch data.Name {
 		default:
 			return
-		case "echo":
-			handleEcho(s, i, parseOptions(data.Options))
 		case "blackjack":
 			handleBlackjack(s, i, parseOptions(data.Options))
 		}
@@ -281,7 +251,6 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	deck.shuffle()
 	dealerCard, deck := deck.deal()
 	playerCard, deck := deck.deal()
-
 	dealerCards = append(dealerCards, dealerCard)
 	playerCards = append(playerCards, playerCard)
 	dealerCard, deck = deck.deal()
