@@ -348,6 +348,7 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	case "PlayerWin":
 		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, playerScore)
 	}
+	fmt.Println(game)
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
