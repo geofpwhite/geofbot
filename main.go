@@ -326,8 +326,12 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 	data := i.MessageComponentData()
-
-	game := games[i.User.ID]
+	var game *game
+	if i.User == nil {
+		game = games[i.Member.User.ID]
+	} else {
+		game = games[i.User.ID]
+	}
 	var playerScore, dealerScore int
 	switch data.CustomID {
 	case "hit-btn":
