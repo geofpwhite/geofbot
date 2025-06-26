@@ -7,14 +7,86 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"regexp"
-	"strconv"
+	"slices"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type optionMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
+
+type game struct {
+	ID          string
+	PlayerID    string
+	Deck        deck
+	DealerCards []string
+	PlayerCards []string
+	Result      string
+}
+
+func (g *game) hit() (int, int) {
+	g.PlayerCards = append(g.PlayerCards, g.Deck.deal())
+	return g.react(true)
+}
+
+func (g *game) stay() (int, int) {
+	return g.react(false)
+}
+
+func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
+	for i := range g.DealerCards {
+		numDealer := cardValues[g.DealerCards[i]]
+		numPlayer := cardValues[g.PlayerCards[i]]
+		dealerScore += numDealer
+		playerScore += numPlayer
+	}
+	if playerScore > 21 && !slices.Contains(g.PlayerCards, "A") {
+		g.Result = "DealerWin"
+		return
+	}
+	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
+		g.Result = "PlayerWin"
+		return
+	}
+	dealerHit := false
+	if dealerScore < 17 || (dealerScore == 17 && slices.Contains(g.DealerCards, "A")) {
+		g.DealerCards = append(g.DealerCards, g.Deck.deal())
+		dealerHit = true
+	}
+	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
+	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
+		g.Result = "PlayerWin"
+		return
+	}
+	if !playerHit && !dealerHit {
+		if playerScore > dealerScore {
+			g.Result = "PlayerWin"
+		} else if dealerScore > playerScore {
+			g.Result = "DealerWin"
+		}
+		return
+	}
+	g.Result = "Playing"
+	return
+}
+
+var games = make(map[string]*game)
+
+var cardValues = map[string]int{
+	"2":  2,
+	"3":  3,
+	"4":  4,
+	"5":  5,
+	"6":  6,
+	"7":  7,
+	"8":  8,
+	"9":  9,
+	"10": 10,
+	"J":  10,
+	"Q":  10,
+	"K":  10,
+	"A":  11,
+}
 
 func parseOptions(options []*discordgo.ApplicationCommandInteractionDataOption) (om optionMap) {
 	om = make(optionMap)
@@ -205,6 +277,13 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	deck.shuffle()
 	dealerCards = append(dealerCards, deck.deal(), deck.deal())
 	playerCards = append(playerCards, deck.deal(), deck.deal())
+	games[i.User.ID] = &game{
+		PlayerID:    i.User.ID,
+		Deck:        deck,
+		DealerCards: dealerCards,
+		PlayerCards: playerCards,
+		Result:      "Playing",
+	}
 	msg := &discordgo.MessageSend{
 		Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
 		Components: []discordgo.MessageComponent{
@@ -237,22 +316,28 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 	data := i.MessageComponentData()
 
+	game := games[i.User.ID]
+	var playerScore, dealerScore int
 	switch data.CustomID {
+	case "hit-btn":
+		playerScore, dealerScore = game.hit()
+	case "stay-btn":
+		playerScore, dealerScore = game.stay()
+	}
+	var content string
+	switch game.Result {
+	case "Playing":
+		content = fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v** = **%d**", game.DealerCards[1:], game.PlayerCards, playerScore)
+	case "DealerWin":
+		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nDealer won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, dealerScore)
+	case "PlayerWin":
+		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, playerScore)
 	}
 
-	// Parse the old count out of the message content.
-	re := regexp.MustCompile(`Count:\s\*\*(\d+)\*\*`)
-	matches := re.FindStringSubmatch(i.Message.Content)
-	count := 0
-	if len(matches) == 2 {
-		count, _ = strconv.Atoi(matches[1])
-	}
-	count++
-	// 1️⃣ ACK the click so the client stops spinning
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
 		Data: &discordgo.InteractionResponseData{
-			Content:    fmt.Sprintf("🔢 Count: **%d**", count),
+			Content:    content,
 			Components: i.Message.Components, // keep the same button row
 		},
 	})
