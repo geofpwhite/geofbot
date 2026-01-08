@@ -6,8 +6,10 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"os/signal"
 	"slices"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -133,10 +135,29 @@ var (
 func main() {
 	flag.Parse()
 	if *App == "" {
-		log.Fatal("application id is not set")
+		content, err := os.ReadFile(".config")
+		if err != nil {
+			log.Fatal("application id is not set")
+		}
+		envvars := strings.Split(strings.ReplaceAll(string(content), "\r", ""), "\n")
+		appid := envvars[0][strings.Index(envvars[0], ":")+1:]
+		bottoken := envvars[1][strings.Index(envvars[1], ":")+1:]
+		guildid := envvars[2][strings.Index(envvars[2], ":")+1:]
+		*App = appid
+		*Token = bottoken
+		*Guild = guildid
 	}
-
+	cmd := exec.Command("escript", "stench", "-s")
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println(err)
+		panic("can't start stench server")
+	}
+	conn := starttcp()
+	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
+	s := newStenchHandler()
+	session.AddHandler(messageCreate(s))
 	session.AddHandler(handleButton)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if i.Type != discordgo.InteractionApplicationCommand {
@@ -150,7 +171,6 @@ func main() {
 		case "blackjack":
 			handleBlackjack(s, i, parseOptions(data.Options))
 		}
-
 	})
 
 	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
@@ -160,7 +180,7 @@ func main() {
 	// session.AddHandler(onInteractionCreate)
 	// session.AddHandler(handleMessage)
 
-	_, err := session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
+	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
 	if err != nil {
 		log.Fatalf("could not register commands: %s", err)
 	}
@@ -178,7 +198,6 @@ func main() {
 	if err != nil {
 		log.Printf("could not close session gracefully: %s", err)
 	}
-
 }
 
 /* func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -236,6 +255,23 @@ func (d deck) shuffle() {
 		d[i], d[j] = d[j], d[i]
 	}
 }
+
+func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
+		fields := strings.Fields(m.Content)
+		var value string
+		fmt.Println(fields)
+		if fields[0] == "!eval" {
+			value = sh.eval(strings.Join(fields[1:], " "))
+			fmt.Println(value)
+		}
+		s.ChannelMessageSend(m.ChannelID, value)
+	}
+}
+
 func (d deck) deal() (string, deck) {
 	if len(d) == 0 {
 		return "", d
@@ -266,7 +302,6 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 			Result:      "Playing",
 		}
 	} else {
-
 		games[i.User.ID] = &game{
 			PlayerID:    i.User.ID,
 			Deck:        deck,
@@ -300,6 +335,7 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	}
 	fmt.Println(m)
 }
+
 func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Ensure this is a component, not a slash command, modal, etc.
 	if i.Type != discordgo.InteractionMessageComponent {
