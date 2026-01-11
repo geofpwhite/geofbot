@@ -153,6 +153,7 @@ func main() {
 		fmt.Println(err)
 		panic("can't start stench server")
 	}
+	defer fmt.Println(cmd.CombinedOutput())
 	conn := starttcp()
 	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
