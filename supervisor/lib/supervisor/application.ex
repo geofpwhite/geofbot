@@ -12,9 +12,9 @@ defmodule Supervisor.Application do
 
   def main(["-l"]) do
     env = System.get_env()
-    appid = env["APPID"] || "default_appid"
-    bottoken = env["BOTTOKEN"] || "default_bottoken"
-    guildid = env["GUILDID"] || "default_guildid"
+    appid = env["appid"] || "default_appid"
+    bottoken = env["bottoken"] || "default_bottoken"
+    guildid = env["guildid"] || "default_guildid"
     IO.inspect(appid)
     IO.inspect(bottoken)
     IO.inspect(guildid)
