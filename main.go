@@ -26,6 +26,8 @@ type game struct {
 }
 
 func (g *game) hit() (int, int) {
+	// zone := tracy.Zone("game.hit")
+	// defer zone.End()
 	playerCard, newDeck := g.Deck.deal()
 	g.PlayerCards = append(g.PlayerCards, playerCard)
 	g.Deck = newDeck
@@ -33,10 +35,14 @@ func (g *game) hit() (int, int) {
 }
 
 func (g *game) stay() (int, int) {
+	// zone := tracy.Zone("game.stay")
+	// defer zone.End()
 	return g.react(false)
 }
 
 func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
+	// zone := tracy.Zone("game.react")
+	// defer zone.End()
 	for i := range g.DealerCards {
 		numDealer := cardValues[g.DealerCards[i]]
 		numPlayer := cardValues[g.PlayerCards[i]]
@@ -226,6 +232,8 @@ case "press_me_button":
 // }
 
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
+	// zone := tracy.Zone("handleBlackjack")
+	// defer zone.End()
 	blackjackMessage(s, i, om)
 }
 
@@ -262,6 +270,8 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 		if m.Author.ID == s.State.User.ID {
 			return
 		}
+		// zone := tracy.Zone("messageCreate")
+		// defer zone.End()
 		fields := strings.Fields(m.Content)
 		var value string
 		fmt.Println(fields)
@@ -283,6 +293,8 @@ func (d deck) deal() (string, deck) {
 }
 
 func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
+	// zone := tracy.Zone("blackjackMessage")
+	// defer zone.End()
 	dealerCards, playerCards := []string{}, []string{}
 	deck := newDeck()
 	deck.shuffle()
@@ -342,6 +354,8 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
 	}
+	// zone := tracy.Zone("handleButton")
+	// defer zone.End()
 	data := i.MessageComponentData()
 	var game *game
 	if i.User == nil {

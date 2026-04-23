@@ -28,6 +28,8 @@ func newStenchHandler() *stenchHandler {
 }
 
 func (s *stenchHandler) eval(input string) string {
+	// zone := tracy.Zone("stench.eval")
+	// defer zone.End()
 	_, err := s.conn.Write([]byte(input + "\n"))
 	fmt.Println("written")
 	if err != nil {
