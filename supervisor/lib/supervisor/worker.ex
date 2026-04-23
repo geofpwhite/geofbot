@@ -56,7 +56,7 @@ defmodule Supervisor.Worker do
     port =
       Port.open({:spawn_executable, "../geofbot"}, [
         :binary,
-        args: ["-app=$appid", "-token=$bottoken", "-owner=$ownerid"]
+        args: ["-app=$appid", "-token=$bottoken", "-guild=$guildid"]
       ])
 
     IO.inspect(port)
