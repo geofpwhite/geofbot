@@ -42,6 +42,19 @@ defmodule Supervisor.Worker do
     # Handle output from the geofbot process
     if String.contains?(data, "Broken Pipe") do
       IO.puts("Broken Pipe detected. Stopping geofbot...")
+
+      os_pid =
+        case :erlang.port_info(state.port, :os_pid) do
+          {:os_pid, pid} -> pid
+          _ -> nil
+        end
+
+      if os_pid do
+        # Send SIGINT
+        :os.cmd('kill -SIGINT #{os_pid}')
+        IO.puts("Sent SIGINT to PID #{os_pid}")
+      end
+
       Port.close(state.port)
       {:noreply, Map.delete(state, :port)}
       {:noreply, start_geofbot(state)}
@@ -54,7 +67,7 @@ defmodule Supervisor.Worker do
   defp start_geofbot(state) do
     # Start the geofbot executable
     port =
-      Port.open({:spawn_executable, "../geofbot"}, [
+      Port.open({:spawn_executable, "./geofbot"}, [
         :binary,
         args: ["-app=$appid", "-token=$bottoken", "-guild=$guildid"]
       ])
@@ -62,6 +75,7 @@ defmodule Supervisor.Worker do
     IO.inspect(port)
     Port.monitor(port)
     # Process.monitor(port)
+
     Map.put(state, :port, port)
   end
 end
