@@ -67,9 +67,9 @@ defmodule Supervisor.Worker do
   defp start_geofbot(state) do
     # Start the geofbot executable
     env = System.get_env()
-    appid = env["APPID"] || "default_appid"
-    bottoken = env["BOTTOKEN"] || "default_bottoken"
-    guildid = env["GUILDID"] || "default_guildid"
+    appid = env["appid"] || "default_appid"
+    bottoken = env["bottoken"] || "default_bottoken"
+    guildid = env["guildid"] || "default_guildid"
     port =
       Port.open({:spawn_executable, "./geofbot"}, [
         :binary,
