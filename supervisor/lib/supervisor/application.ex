@@ -10,6 +10,16 @@ defmodule Supervisor.Application do
     Supervisor.start_link(children, opts)
   end
 
+  def main(["-l"]) do
+    env = System.get_env()
+    appid = env["APPID"] || "default_appid"
+    bottoken = env["BOTTOKEN"] || "default_bottoken"
+    guildid = env["GUILDID"] || "default_guildid"
+    IO.inspect(appid)
+    IO.inspect(bottoken)
+    IO.inspect(guildid)
+  end
+
   def main(_args \\ []) do
     # Start the application
     {:ok, _pid} = Supervisor.Application.start(:normal, [])
