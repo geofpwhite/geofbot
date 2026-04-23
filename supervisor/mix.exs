@@ -20,7 +20,7 @@ defmodule Supervisor.MixProject do
   end
 
  defp escript do
-    [main_module: Supervisor.Application, name: "stench"]
+    [main_module: Supervisor.Application, name: "supervisor"]
  end
 
   defp deps do
