@@ -71,7 +71,7 @@ defmodule Supervisor.Worker do
     bottoken = env["BOTTOKEN"] || "default_bottoken"
     guildid = env["GUILDID"] || "default_guildid"
     port =
-      Port.open({:spawn_executable, "./geofbot"}, [
+      Port.open({:spawn_executable, "./stench -s & ./geofbot"}, [
         :binary,
         args: ["-app="<>appid, "-token="<>bottoken, "-guild="<>guildid]
       ])
