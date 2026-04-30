@@ -58,8 +58,7 @@ defmodule Supervisor.Worker do
       end
 
       Port.close(state.port)
-      {:noreply, Map.delete(state, :port)}
-      {:noreply, start_geofbot(state)}
+      {:noreply, start_geofbot( Map.delete(state, :port))}
     else
       IO.puts("Geofbot output: #{data}")
       {:noreply, state}
