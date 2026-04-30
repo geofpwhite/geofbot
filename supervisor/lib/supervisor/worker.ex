@@ -51,7 +51,7 @@ defmodule Supervisor.Worker do
 
       if os_pid do
         # Send SIGINT
-        :os.cmd('kill -SIGINT #{os_pid}')
+        :os.cmd("kill -SIGINT #{os_pid}")
         IO.puts("Sent SIGINT to PID #{os_pid}")
       end
 

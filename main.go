@@ -4,100 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"os/signal"
-	"slices"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type optionMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
-
-type game struct {
-	ID          string
-	PlayerID    string
-	Deck        deck
-	DealerCards []string
-	PlayerCards []string
-	Result      string
-}
-
-func (g *game) hit() (int, int) {
-	// zone := tracy.Zone("game.hit")
-	// defer zone.End()
-	playerCard, newDeck := g.Deck.deal()
-	g.PlayerCards = append(g.PlayerCards, playerCard)
-	g.Deck = newDeck
-	return g.react(true)
-}
-
-func (g *game) stay() (int, int) {
-	// zone := tracy.Zone("game.stay")
-	// defer zone.End()
-	return g.react(false)
-}
-
-func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
-	// zone := tracy.Zone("game.react")
-	// defer zone.End()
-	for i := range g.DealerCards {
-		numDealer := cardValues[g.DealerCards[i]]
-		numPlayer := cardValues[g.PlayerCards[i]]
-		dealerScore += numDealer
-		playerScore += numPlayer
-	}
-	if playerScore > 21 && !slices.Contains(g.PlayerCards, "A") {
-		g.Result = "DealerWin"
-		return
-	}
-	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
-		g.Result = "PlayerWin"
-		return
-	}
-	dealerHit := false
-	if dealerScore < 17 || (dealerScore == 17 && slices.Contains(g.DealerCards, "A")) {
-		dealerCard, newDeck := g.Deck.deal()
-		g.DealerCards = append(g.DealerCards, dealerCard)
-		g.Deck = newDeck
-		dealerHit = true
-	}
-	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
-	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
-		g.Result = "PlayerWin"
-		return
-	}
-	if !playerHit && !dealerHit {
-		if playerScore > dealerScore {
-			g.Result = "PlayerWin"
-		} else if dealerScore > playerScore {
-			g.Result = "DealerWin"
-		}
-		return
-	}
-	g.Result = "Playing"
-	return
-}
-
-var games = make(map[string]*game)
-
-var cardValues = map[string]int{
-	"2":  2,
-	"3":  3,
-	"4":  4,
-	"5":  5,
-	"6":  6,
-	"7":  7,
-	"8":  8,
-	"9":  9,
-	"10": 10,
-	"J":  10,
-	"Q":  10,
-	"K":  10,
-	"A":  11,
-}
 
 func parseOptions(options []*discordgo.ApplicationCommandInteractionDataOption) (om optionMap) {
 	om = make(optionMap)
@@ -138,75 +53,6 @@ var (
 	Guild = flag.String("guild", "", "Guild ID")
 )
 
-func main() {
-	flag.Parse()
-	if *App == "" {
-		content, err := os.ReadFile(".config")
-		if err != nil {
-			log.Fatal("application id is not set")
-		}
-		envvars := strings.Split(strings.ReplaceAll(string(content), "\r", ""), "\n")
-		appid := envvars[0][strings.Index(envvars[0], ":")+1:]
-		bottoken := envvars[1][strings.Index(envvars[1], ":")+1:]
-		guildid := envvars[2][strings.Index(envvars[2], ":")+1:]
-		*App = appid
-		*Token = bottoken
-		*Guild = guildid
-	}
-	cmd := exec.Command("escript", "stench", "-s")
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println(err)
-		panic("can't start stench server")
-	}
-	defer fmt.Println(cmd.CombinedOutput())
-	conn := starttcp()
-	fmt.Println(conn)
-	session, _ := discordgo.New("Bot " + *Token)
-	s := newStenchHandler()
-	session.AddHandler(messageCreate(s))
-	session.AddHandler(handleButton)
-	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Type != discordgo.InteractionApplicationCommand {
-			return
-		}
-
-		data := i.ApplicationCommandData()
-		switch data.Name {
-		default:
-			return
-		case "blackjack":
-			handleBlackjack(s, i, parseOptions(data.Options))
-		}
-	})
-
-	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
-		log.Printf("Logged in as %s", r.User.String())
-	})
-
-	// session.AddHandler(onInteractionCreate)
-	// session.AddHandler(handleMessage)
-
-	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
-	if err != nil {
-		log.Fatalf("could not register commands: %s", err)
-	}
-
-	err = session.Open()
-	if err != nil {
-		log.Fatalf("could not open session: %s", err)
-	}
-
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, os.Interrupt)
-	<-sigch
-
-	err = session.Close()
-	if err != nil {
-		log.Printf("could not close session gracefully: %s", err)
-	}
-}
-
 /* func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 // Only care about component (e.g. button) interactions
 s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
@@ -237,34 +83,6 @@ func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om op
 	blackjackMessage(s, i, om)
 }
 
-type deck []string
-
-func newDeck() deck {
-	return []string{
-		"2", "2", "2", "2",
-		"3", "3", "3", "3",
-		"4", "4", "4", "4",
-		"5", "5", "5", "5",
-		"6", "6", "6", "6",
-		"7", "7", "7", "7",
-		"8", "8", "8", "8",
-		"9", "9", "9", "9",
-		"10", "10", "10", "10",
-		"J", "J", "J", "J",
-		"Q", "Q", "Q", "Q",
-		"K", "K", "K", "K",
-		"A", "A", "A", "A",
-	}
-}
-
-func (d deck) shuffle() {
-	// Implement a simple shuffle algorithm, e.g., Fisher-Yates
-	for i := len(d) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		d[i], d[j] = d[j], d[i]
-	}
-}
-
 func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if m.Author.ID == s.State.User.ID {
@@ -281,15 +99,6 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 		}
 		s.ChannelMessageSend(m.ChannelID, value)
 	}
-}
-
-func (d deck) deal() (string, deck) {
-	if len(d) == 0 {
-		return "", d
-	}
-	card := d[0]
-	d = d[1:]
-	return card, d
 }
 
 func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
@@ -388,4 +197,72 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			Components: i.Message.Components, // keep the same button row
 		},
 	})
+}
+
+func main() {
+	flag.Parse()
+	if *App == "" {
+		content, err := os.ReadFile(".config")
+		if err != nil {
+			log.Fatal("application id is not set")
+		}
+		envvars := strings.Split(strings.ReplaceAll(string(content), "\r", ""), "\n")
+		appid := envvars[0][strings.Index(envvars[0], ":")+1:]
+		bottoken := envvars[1][strings.Index(envvars[1], ":")+1:]
+		guildid := envvars[2][strings.Index(envvars[2], ":")+1:]
+		*App = appid
+		*Token = bottoken
+		*Guild = guildid
+	}
+	cmd := exec.Command("escript", "stench", "-s")
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println(err)
+		panic("can't start stench server")
+	}
+	defer fmt.Println(cmd.CombinedOutput())
+	conn := starttcp()
+	fmt.Println(conn)
+	session, _ := discordgo.New("Bot " + *Token)
+	s := newStenchHandler()
+	session.AddHandler(messageCreate(s))
+	session.AddHandler(handleButton)
+	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if i.Type != discordgo.InteractionApplicationCommand {
+			return
+		}
+
+		data := i.ApplicationCommandData()
+		switch data.Name {
+		case "blackjack":
+			handleBlackjack(s, i, parseOptions(data.Options))
+		default:
+			return
+		}
+	})
+
+	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		log.Printf("Logged in as %s", r.User.String())
+	})
+	// session.AddHandler(onInteractionCreate)
+	// session.AddHandler(handleMessage)
+
+	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
+	if err != nil {
+		log.Fatalf("could not register commands: %s", err)
+	}
+
+	err = session.Open()
+	if err != nil {
+		log.Fatalf("could not open session: %s", err)
+	}
+
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, os.Interrupt)
+	<-sigch
+
+	err = session.Close()
+	if err != nil {
+		log.Printf("could not close session gracefully: %s", err)
+	}
 }
