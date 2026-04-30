@@ -29,7 +29,9 @@ defmodule Supervisor.Worker do
   @impl true
   def init(state) do
     # Start the geofbot process
-    {:ok, start_geofbot(state)}
+    p = start_geofbot(state)
+    IO.inspect(p)
+    {:ok, p}
   end
 
   @impl true
