@@ -136,30 +136,31 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 			Result:      "Playing",
 		}
 	}
-	msg := &discordgo.MessageSend{
-		Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
-		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.Button{
-						Style:    discordgo.DangerButton,
-						Label:    "Hit",
-						CustomID: "hit-btn",
-					},
-					discordgo.Button{
-						Style:    discordgo.DangerButton,
-						Label:    "Stay",
-						CustomID: "stay-btn",
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**", dealerCards[1:], playerCards),
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.Button{
+							Style:    discordgo.DangerButton,
+							Label:    "Hit",
+							CustomID: "hit-btn",
+						},
+						discordgo.Button{
+							Style:    discordgo.DangerButton,
+							Label:    "Stay",
+							CustomID: "stay-btn",
+						},
 					},
 				},
 			},
 		},
-	}
-	m, err := s.ChannelMessageSendComplex(i.ChannelID, msg)
+	})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("blackjackMessage respond error:", err)
 	}
-	fmt.Println(m)
 }
 
 func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -241,10 +242,9 @@ func main() {
 
 	session.AddHandler(handleButton)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		/* 	if i.Type != discordgo.InteractionApplicationCommand {
+		if i.Type != discordgo.InteractionApplicationCommand {
 			return
 		}
-		*/
 		data := i.ApplicationCommandData()
 		fmt.Println(data.Name)
 		switch data.Name {
