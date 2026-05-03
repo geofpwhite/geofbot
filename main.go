@@ -234,7 +234,8 @@ func main() {
 		*/
 		data := i.ApplicationCommandData()
 		switch data.Name {
-		case "/blackjack":
+		case "blackjack":
+			fmt.Println("blackjack command received")
 			handleBlackjack(s, i, parseOptions(data.Options))
 		default:
 			return
