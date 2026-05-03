@@ -228,13 +228,13 @@ func main() {
 	session.AddHandler(messageCreate(s))
 	session.AddHandler(handleButton)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.Type != discordgo.InteractionApplicationCommand {
+		/* 	if i.Type != discordgo.InteractionApplicationCommand {
 			return
 		}
-
+		*/
 		data := i.ApplicationCommandData()
 		switch data.Name {
-		case "blackjack":
+		case "/blackjack":
 			handleBlackjack(s, i, parseOptions(data.Options))
 		default:
 			return
