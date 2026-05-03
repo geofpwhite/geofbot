@@ -90,6 +90,10 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 		}
 		// zone := tracy.Zone("messageCreate")
 		// defer zone.End()
+		if strings.HasPrefix(m.Content, "/") {
+			// Ignore slash commands
+			return
+		}
 		fields := strings.Fields(m.Content)
 		var value string
 		fmt.Println("Fields: ", fields)
