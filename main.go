@@ -230,7 +230,12 @@ func main() {
 	session, _ := discordgo.New("Bot " + *Token)
 	s := newStenchHandler()
 	for _, c := range commands {
-		session.ApplicationCommandCreate(*App, *Guild, c)
+		cmd, err := session.ApplicationCommandCreate(*App, *Guild, c)
+		if err != nil {
+			fmt.Printf("Error creating command: %v\n", err)
+		} else {
+			fmt.Printf("Command created: %s\n", cmd.Name)
+		}
 	}
 	session.AddHandler(messageCreate(s))
 
