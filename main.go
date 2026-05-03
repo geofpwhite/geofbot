@@ -229,7 +229,11 @@ func main() {
 	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
 	s := newStenchHandler()
+	for _, c := range commands {
+		session.ApplicationCommandCreate(*App, *Guild, c)
+	}
 	session.AddHandler(messageCreate(s))
+
 	session.AddHandler(handleButton)
 	session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		/* 	if i.Type != discordgo.InteractionApplicationCommand {
