@@ -233,6 +233,7 @@ func main() {
 		}
 		*/
 		data := i.ApplicationCommandData()
+		fmt.Println(data.Name)
 		switch data.Name {
 		case "blackjack":
 			fmt.Println("blackjack command received")
