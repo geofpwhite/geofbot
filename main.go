@@ -92,7 +92,7 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 		// defer zone.End()
 		fields := strings.Fields(m.Content)
 		var value string
-		fmt.Println(fields)
+		fmt.Println("Fields: ", fields)
 		if len(fields) > 0 && fields[0] == "!eval" {
 			value = sh.eval(strings.Join(fields[1:], " "))
 			fmt.Println(value)
