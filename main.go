@@ -299,7 +299,7 @@ func main() {
 	}
 	defer fmt.Println(cmd.CombinedOutput())
 	conn := starttcp()
-	fmt.Println(conn)
+	fmt.Println(conn, "connection")
 	session, _ := discordgo.New("Bot " + *Token)
 
 	s := newStenchHandler()
