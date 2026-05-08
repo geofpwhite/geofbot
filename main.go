@@ -332,10 +332,10 @@ func main() {
 		log.Fatalf("could not open session: %s", err)
 	}
 
-	// _, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
-	for _, c := range commands {
-		session.ApplicationCommandCreate(*App, "", c)
-	}
+	_, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
+	// for _, c := range commands {
+	// 	session.ApplicationCommandCreate(*App, "", c)
+	// }
 	if err != nil {
 		log.Fatalf("could not register commands: %s", err)
 	}
