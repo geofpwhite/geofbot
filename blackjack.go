@@ -39,12 +39,6 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		numDealer := cardValues[g.DealerCards[i]]
 		dealerScore += numDealer
 	}
-	if playerHit {
-		newCard, newDeck := g.Deck.deal()
-		g.PlayerCards = append(g.PlayerCards, newCard)
-		g.Deck = newDeck
-
-	}
 	for i := range g.PlayerCards {
 		numPlayer := cardValues[g.PlayerCards[i]]
 		playerScore += numPlayer
