@@ -332,7 +332,8 @@ func main() {
 		log.Fatalf("could not open session: %s", err)
 	}
 
-	_, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
+	acbo, err := session.ApplicationCommandBulkOverwrite(*App, "", commands)
+	fmt.Println(acbo)
 	// for _, c := range commands {
 	// 	session.ApplicationCommandCreate(*App, "", c)
 	// }
