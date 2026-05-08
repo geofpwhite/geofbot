@@ -95,13 +95,17 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 			return
 		}
 		fields := strings.Fields(m.Content)
-		var value string
 		fmt.Println("Fields: ", fields)
-		if len(fields) > 0 && fields[0] == "!eval" {
-			value = sh.eval(strings.Join(fields[1:], " "))
-			fmt.Println(value)
+		if len(fields) > 0 {
+			switch fields[0] {
+			case "!eval":
+				value := sh.eval(strings.Join(fields[1:], " "))
+				fmt.Println(value)
+				s.ChannelMessageSend(m.ChannelID, value)
+			case "!blackjack":
+				blackjackMessage(s, &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{User: m.Author}}, nil)
+			}
 		}
-		s.ChannelMessageSend(m.ChannelID, value)
 	}
 }
 
@@ -230,14 +234,6 @@ func main() {
 	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
 	s := newStenchHandler()
-	for _, c := range commands {
-		cmd, err := session.ApplicationCommandCreate(*App, *Guild, c)
-		if err != nil {
-			fmt.Printf("Error creating command: %v\n", err)
-		} else {
-			fmt.Printf("Command created: %s\n", cmd.Name)
-		}
-	}
 	session.AddHandler(messageCreate(s))
 
 	session.AddHandler(handleButton)
@@ -262,14 +258,14 @@ func main() {
 	// session.AddHandler(onInteractionCreate)
 	// session.AddHandler(handleMessage)
 
-	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
-	if err != nil {
-		log.Fatalf("could not register commands: %s", err)
-	}
-
 	err = session.Open()
 	if err != nil {
 		log.Fatalf("could not open session: %s", err)
+	}
+
+	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
+	if err != nil {
+		log.Fatalf("could not register commands: %s", err)
 	}
 
 	sigch := make(chan os.Signal, 1)
