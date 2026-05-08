@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"slices"
 
@@ -40,6 +41,7 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		dealerScore += numDealer
 		playerScore += numPlayer
 	}
+	fmt.Println(playerScore, dealerScore)
 	if playerScore > 21 && !slices.Contains(g.PlayerCards, "A") {
 		g.Result = "DealerWin"
 		return
