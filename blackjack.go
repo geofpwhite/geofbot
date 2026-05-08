@@ -35,6 +35,7 @@ func (g *game) stay() (int, int) {
 func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	// zone := tracy.Zone("game.react")
 	// defer zone.End()
+	defer fmt.Println(playerScore, dealerScore)
 	dealerAce, playerAce := 0, 0
 	for i := range g.DealerCards {
 		numDealer := cardValues[g.DealerCards[i]]
@@ -59,11 +60,11 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		playerScore -= 10
 	}
 	fmt.Println(playerScore, dealerScore)
-	if playerScore > 21 && !slices.Contains(g.PlayerCards, "A") {
+	if playerScore > 21 {
 		g.Result = "DealerWin"
 		return
 	}
-	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
+	if dealerScore > 21 {
 		g.Result = "PlayerWin"
 		return
 	}
@@ -75,7 +76,7 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		dealerHit = true
 	}
 	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
-	if dealerScore > 21 && !slices.Contains(g.DealerCards, "A") {
+	if dealerScore > 21 {
 		g.Result = "PlayerWin"
 		return
 	}
