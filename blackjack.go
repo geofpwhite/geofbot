@@ -43,6 +43,13 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 			dealerAce++
 		}
 	}
+	for i := range g.PlayerCards {
+		numPlayer := cardValues[g.PlayerCards[i]]
+		playerScore += numPlayer
+		if g.PlayerCards[i] == "A" {
+			playerAce++
+		}
+	}
 	for dealerScore > 21 && dealerAce > 0 {
 		dealerAce--
 		dealerScore -= 10
@@ -50,10 +57,6 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	for playerScore > 21 && playerAce > 0 {
 		playerAce--
 		playerScore -= 10
-	}
-	for i := range g.PlayerCards {
-		numPlayer := cardValues[g.PlayerCards[i]]
-		playerScore += numPlayer
 	}
 	fmt.Println(playerScore, dealerScore)
 	if playerScore > 21 && !slices.Contains(g.PlayerCards, "A") {
