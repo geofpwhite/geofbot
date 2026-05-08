@@ -3,6 +3,8 @@ package main
 import (
 	"math/rand"
 	"slices"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type game struct {
@@ -122,5 +124,39 @@ func (d deck) shuffle() {
 	for i := len(d) - 1; i > 0; i-- {
 		j := rand.Intn(i + 1)
 		d[i], d[j] = d[j], d[i]
+	}
+}
+
+// gameComponents returns the correct button row based on the current game result.
+// "Playing" → Hit + Stay buttons; any terminal result → Reset button only.
+func gameComponents(result string) []discordgo.MessageComponent {
+	if result == "Playing" {
+		return []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.Button{
+						Style:    discordgo.DangerButton,
+						Label:    "Hit",
+						CustomID: "hit-btn",
+					},
+					discordgo.Button{
+						Style:    discordgo.DangerButton,
+						Label:    "Stay",
+						CustomID: "stay-btn",
+					},
+				},
+			},
+		}
+	}
+	return []discordgo.MessageComponent{
+		discordgo.ActionsRow{
+			Components: []discordgo.MessageComponent{
+				discordgo.Button{
+					Style:    discordgo.PrimaryButton,
+					Label:    "Reset",
+					CustomID: "reset-btn",
+				},
+			},
+		},
 	}
 }

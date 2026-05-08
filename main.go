@@ -102,8 +102,6 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 				value := sh.eval(strings.Join(fields[1:], " "))
 				fmt.Println(value)
 				s.ChannelMessageSend(m.ChannelID, value)
-			case "!blackjack":
-				blackjackMessage(s, &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{ID: m.ID, User: m.Author}}, nil)
 			}
 		}
 	}
@@ -167,43 +165,113 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	}
 }
 
+// buildContent formats the message content string based on the current game state.
+func buildContent(g *game, playerScore, dealerScore int) string {
+	switch g.Result {
+	case "DealerWin":
+		return fmt.Sprintf(
+			"Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nDealer won with a score of %d",
+			g.DealerCards, g.PlayerCards, playerScore, dealerScore,
+		)
+	case "PlayerWin":
+		return fmt.Sprintf(
+			"Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d",
+			g.DealerCards, g.PlayerCards, playerScore, playerScore,
+		)
+	default: // "Playing"
+		return fmt.Sprintf(
+			"Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v** = **%d**",
+			g.DealerCards[1:], g.PlayerCards, playerScore,
+		)
+	}
+}
+
+// blackjackReset handles the reset-btn interaction. It tears down the old game
+// and starts a fresh one for the user, updating the existing message in place.
+func blackjackReset(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	var userID string
+	if i.User == nil {
+		userID = i.Member.User.ID
+	} else {
+		userID = i.User.ID
+	}
+
+	// Remove old game (no-op if missing, e.g. after bot restart)
+	delete(games, userID)
+
+	// Deal a fresh game
+	d := newDeck()
+	d.shuffle()
+	dealerCard1, d := d.deal()
+	playerCard1, d := d.deal()
+	dealerCard2, d := d.deal()
+	playerCard2, d := d.deal()
+
+	dealerCards := []string{dealerCard1, dealerCard2}
+	playerCards := []string{playerCard1, playerCard2}
+
+	games[userID] = &game{
+		PlayerID:    userID,
+		Deck:        d,
+		DealerCards: dealerCards,
+		PlayerCards: playerCards,
+		Result:      "Playing",
+	}
+
+	content := fmt.Sprintf(
+		"Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v**",
+		dealerCards[1:], playerCards,
+	)
+
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseUpdateMessage,
+		Data: &discordgo.InteractionResponseData{
+			Content:    content,
+			Components: gameComponents("Playing"),
+		},
+	})
+	if err != nil {
+		fmt.Println("blackjackReset respond error:", err)
+	}
+}
+
 func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Ensure this is a component, not a slash command, modal, etc.
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
 	}
-	// zone := tracy.Zone("handleButton")
-	// defer zone.End()
 	data := i.MessageComponentData()
-	var game *game
-	if i.User == nil {
-		game = games[i.Member.User.ID]
-	} else {
-		game = games[i.User.ID]
+
+	// Reset is handled entirely by blackjackReset; no game lookup needed here.
+	if data.CustomID == "reset-btn" {
+		blackjackReset(s, i)
+		return
 	}
+
+	var userID string
+	if i.User == nil {
+		userID = i.Member.User.ID
+	} else {
+		userID = i.User.ID
+	}
+
+	g := games[userID]
 	var playerScore, dealerScore int
 	switch data.CustomID {
 	case "hit-btn":
-		playerScore, dealerScore = game.hit()
+		playerScore, dealerScore = g.hit()
 	case "stay-btn":
-		playerScore, dealerScore = game.stay()
+		playerScore, dealerScore = g.stay()
 	}
-	var content string
-	switch game.Result {
-	case "Playing":
-		content = fmt.Sprintf("Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v** = **%d**", game.DealerCards[1:], game.PlayerCards, playerScore)
-	case "DealerWin":
-		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nDealer won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, dealerScore)
-	case "PlayerWin":
-		content = fmt.Sprintf("Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d", game.DealerCards, game.PlayerCards, playerScore, playerScore)
-	}
-	fmt.Println(game.PlayerCards, game.DealerCards)
 
+	fmt.Println(g.PlayerCards, g.DealerCards)
+
+	content := buildContent(g, playerScore, dealerScore)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
 		Data: &discordgo.InteractionResponseData{
 			Content:    content,
-			Components: i.Message.Components, // keep the same button row
+			Components: gameComponents(g.Result),
 		},
 	})
 }
@@ -234,9 +302,6 @@ func main() {
 	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
 
-	for _, c := range commands {
-		session.ApplicationCommandCreate(*App, *Guild, c)
-	}
 	s := newStenchHandler()
 	session.AddHandler(messageCreate(s))
 
