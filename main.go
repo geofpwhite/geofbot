@@ -53,29 +53,29 @@ var (
 	Guild = flag.String("guild", "", "Guild ID")
 )
 
-/* func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-// Only care about component (e.g. button) interactions
-s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
-	Image: &discordgo.MessageEmbedImage{},
-}, i.Message.Reference())
+func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Only care about component (e.g. button) interactions
+	s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
+		Image: &discordgo.MessageEmbedImage{},
+	}, i.Message.Reference())
 
-if i.Type != discordgo.InteractionMessageComponent {
-	return
+	if i.Type != discordgo.InteractionMessageComponent {
+		return
+	}
+	fmt.Println(s, i)
+
+	data := i.MessageComponentData()
+	switch data.CustomID {
+	case "press_me_button":
+		// Acknowledge & reply
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "You pressed the button! 🎉",
+			},
+		})
+	}
 }
-fmt.Println(s, i)
-
-data := i.MessageComponentData()
-switch data.CustomID {
-case "press_me_button":
-	// Acknowledge & reply
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "You pressed the button! 🎉",
-		},
-	})
-} */
-// }
 
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	// zone := tracy.Zone("handleBlackjack")
@@ -103,7 +103,7 @@ func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.Me
 				fmt.Println(value)
 				s.ChannelMessageSend(m.ChannelID, value)
 			case "!blackjack":
-				blackjackMessage(s, &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{User: m.Author}}, nil)
+				blackjackMessage(s, &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{ID: m.ID, User: m.Author}}, nil)
 			}
 		}
 	}
