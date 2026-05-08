@@ -35,7 +35,10 @@ func (g *game) stay() (int, int) {
 func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	// zone := tracy.Zone("game.react")
 	// defer zone.End()
-	defer func() { fmt.Println(playerScore, dealerScore) }()
+	defer func() {
+		fmt.Println(playerScore, dealerScore)
+		fmt.Println(g.PlayerCards, g.DealerCards)
+	}()
 	dealerAce, playerAce := 0, 0
 	for i := range g.DealerCards {
 		numDealer := cardValues[g.DealerCards[i]]
