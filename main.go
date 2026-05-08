@@ -332,7 +332,7 @@ func main() {
 		log.Fatalf("could not open session: %s", err)
 	}
 
-	_, err = session.ApplicationCommandBulkOverwrite(*App, *Guild, commands)
+	_, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
 	if err != nil {
 		log.Fatalf("could not register commands: %s", err)
 	}
