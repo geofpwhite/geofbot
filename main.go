@@ -233,6 +233,10 @@ func main() {
 	conn := starttcp()
 	fmt.Println(conn)
 	session, _ := discordgo.New("Bot " + *Token)
+
+	for _, c := range commands {
+		session.ApplicationCommandCreate(*App, *Guild, c)
+	}
 	s := newStenchHandler()
 	session.AddHandler(messageCreate(s))
 
