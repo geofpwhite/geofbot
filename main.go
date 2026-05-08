@@ -301,7 +301,7 @@ func main() {
 	conn := starttcp()
 	fmt.Println(conn, "connection")
 	session, _ := discordgo.New("Bot " + *Token)
-
+	fmt.Println(session)
 	s := newStenchHandler()
 	session.AddHandler(messageCreate(s))
 
@@ -332,7 +332,7 @@ func main() {
 		log.Fatalf("could not open session: %s", err)
 	}
 
-	_, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
+	// _, err = session.ApplicationCommandBulkOverwrite(*App, "", commands)
 	for _, c := range commands {
 		session.ApplicationCommandCreate(*App, "", c)
 	}
