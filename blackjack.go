@@ -95,6 +95,8 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 			g.Result = "PlayerWin"
 		} else if dealerScore > playerScore {
 			g.Result = "DealerWin"
+		} else {
+			g.Result = "Tie"
 		}
 		return
 	}

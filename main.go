@@ -175,9 +175,15 @@ func buildContent(g *game, playerScore, dealerScore int) string {
 		)
 	case "PlayerWin":
 		return fmt.Sprintf(
-			"Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer Won with a score of %d",
+			"Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nPlayer won with a score of %d",
 			g.DealerCards, g.PlayerCards, playerScore, playerScore,
 		)
+	case "Tie":
+		return fmt.Sprintf(
+			"Dealer Cards: **%v**\r\nPlayer Cards: **%v** = **%d**\r\nScores are tied at %d, so Player wins",
+			g.DealerCards, g.PlayerCards, playerScore, playerScore,
+		)
+
 	default: // "Playing"
 		return fmt.Sprintf(
 			"Dealer Cards: ? + **%v**\r\nPlayer Cards: **%v** = **%d**",
