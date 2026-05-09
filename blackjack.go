@@ -62,7 +62,6 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		playerAce--
 		playerScore -= 10
 	}
-	fmt.Println(playerScore, dealerScore)
 	if playerScore > 21 {
 		g.Result = "DealerWin"
 		return
@@ -80,11 +79,11 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 		g.DealerCards = append(g.DealerCards, dealerCard)
 		g.Deck = newDeck
 		dealerHit = true
-	}
-	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
-	for dealerScore > 21 && dealerAce > 0 {
-		dealerAce--
-		dealerScore -= 10
+		dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
+		for dealerScore > 21 && dealerAce > 0 {
+			dealerAce--
+			dealerScore -= 10
+		}
 	}
 
 	if dealerScore > 21 {
