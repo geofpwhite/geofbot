@@ -74,11 +74,19 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	dealerHit := false
 	if dealerScore < 17 || (dealerScore == 17 && slices.Contains(g.DealerCards, "A")) {
 		dealerCard, newDeck := g.Deck.deal()
+		if dealerCard == "A" {
+			dealerAce++
+		}
 		g.DealerCards = append(g.DealerCards, dealerCard)
 		g.Deck = newDeck
 		dealerHit = true
 	}
 	dealerScore = dealerScore + cardValues[g.DealerCards[len(g.DealerCards)-1]]
+	for dealerScore > 21 && dealerAce > 0 {
+		dealerAce--
+		dealerScore -= 10
+	}
+
 	if dealerScore > 21 {
 		g.Result = "PlayerWin"
 		return
