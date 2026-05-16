@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -45,6 +47,11 @@ var commands = []*discordgo.ApplicationCommand{
 		Description: "play blackjack",
 		Options:     []*discordgo.ApplicationCommandOption{},
 	},
+	{
+		Name:        "connect4",
+		Description: "play connect4",
+		Options:     []*discordgo.ApplicationCommandOption{},
+	},
 }
 
 var (
@@ -53,34 +60,175 @@ var (
 	Guild = flag.String("guild", "", "Guild ID")
 )
 
-func onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	// Only care about component (e.g. button) interactions
-	s.ChannelMessageSendEmbedReply(i.ChannelID, &discordgo.MessageEmbed{
-		Image: &discordgo.MessageEmbedImage{},
-	}, i.Message.Reference())
-
-	if i.Type != discordgo.InteractionMessageComponent {
-		return
-	}
-	fmt.Println(s, i)
-
-	data := i.MessageComponentData()
-	switch data.CustomID {
-	case "press_me_button":
-		// Acknowledge & reply
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "You pressed the button! 🎉",
-			},
-		})
-	}
-}
-
 func handleBlackjack(s *discordgo.Session, i *discordgo.InteractionCreate, om optionMap) {
 	// zone := tracy.Zone("handleBlackjack")
 	// defer zone.End()
 	blackjackMessage(s, i, om)
+}
+
+func connect4ColumnButtons(gameID string) []discordgo.MessageComponent {
+	row1 := make([]discordgo.MessageComponent, 5)
+	for i := 0; i < 5; i++ {
+		row1[i] = discordgo.Button{
+			Style:    discordgo.PrimaryButton,
+			Label:    fmt.Sprintf("%d", i+1),
+			CustomID: fmt.Sprintf("c4-drop-%s-%d", gameID, i),
+		}
+	}
+	row2 := make([]discordgo.MessageComponent, 2)
+	for i := 0; i < 2; i++ {
+		row2[i] = discordgo.Button{
+			Style:    discordgo.PrimaryButton,
+			Label:    fmt.Sprintf("%d", i+6),
+			CustomID: fmt.Sprintf("c4-drop-%s-%d", gameID, i+5),
+		}
+	}
+	return []discordgo.MessageComponent{
+		discordgo.ActionsRow{Components: row1},
+		discordgo.ActionsRow{Components: row2},
+	}
+}
+
+func handleConnect4(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	var userID string
+	if i.User == nil {
+		userID = i.Member.User.ID
+	} else {
+		userID = i.User.ID
+	}
+	connect4Games[userID] = &connect4{
+		ID:     userID,
+		redID:  userID,
+		Result: waiting,
+		turn:   red,
+	}
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("<@%s> wants to play Connect 4! 🔴 Click Join to play as 🟡.", userID),
+			Components: []discordgo.MessageComponent{
+				discordgo.ActionsRow{
+					Components: []discordgo.MessageComponent{
+						discordgo.Button{
+							Style:    discordgo.SuccessButton,
+							Label:    "Join Game",
+							CustomID: fmt.Sprintf("c4-join-%s", userID),
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		fmt.Println("handleConnect4 respond error:", err)
+	}
+}
+
+func handleConnect4Button(s *discordgo.Session, i *discordgo.InteractionCreate, customID string) {
+	var userID string
+	if i.User == nil {
+		userID = i.Member.User.ID
+	} else {
+		userID = i.User.ID
+	}
+
+	switch {
+	case strings.HasPrefix(customID, "c4-join-"):
+		gameID := customID[len("c4-join-"):]
+		game, ok := connect4Games[gameID]
+		if !ok || game.Result != waiting {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "This game is no longer available.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			return
+		}
+		if userID == game.redID {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "You can't join your own game!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			return
+		}
+		game.yellowID = userID
+		game.Result = redTurn
+		content := fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\n🔴 Red's turn!", game.redID, game.yellowID, game.renderBoard())
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Content:    content,
+				Components: connect4ColumnButtons(gameID),
+			},
+		})
+
+	case strings.HasPrefix(customID, "c4-drop-"):
+		rest := customID[len("c4-drop-"):]
+		lastHyphen := strings.LastIndex(rest, "-")
+		if lastHyphen < 0 {
+			return
+		}
+		gameID := rest[:lastHyphen]
+		col, err := strconv.Atoi(rest[lastHyphen+1:])
+		if err != nil {
+			return
+		}
+		game, ok := connect4Games[gameID]
+		if !ok {
+			return
+		}
+		if (game.turn == red && userID != game.redID) || (game.turn == yellow && userID != game.yellowID) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "It's not your turn!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			return
+		}
+		game.makeMove(userID, col)
+		if game.Result != redWin && game.Result != yellowWin {
+			if game.isFull() {
+				game.Result = draw
+			} else if game.turn == red {
+				game.Result = redTurn
+			} else {
+				game.Result = yellowTurn
+			}
+		}
+		var content string
+		var components []discordgo.MessageComponent
+		switch game.Result {
+		case redWin:
+			content = fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\n🔴 Red wins!", game.redID, game.yellowID, game.renderBoard())
+		case yellowWin:
+			content = fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\n🟡 Yellow wins!", game.redID, game.yellowID, game.renderBoard())
+		case draw:
+			content = fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\nIt's a draw!", game.redID, game.yellowID, game.renderBoard())
+		case redTurn:
+			content = fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\n🔴 Red's turn!", game.redID, game.yellowID, game.renderBoard())
+			components = connect4ColumnButtons(gameID)
+		case yellowTurn:
+			content = fmt.Sprintf("🔴 <@%s> vs 🟡 <@%s>\n\n%s\n🟡 Yellow's turn!", game.redID, game.yellowID, game.renderBoard())
+			components = connect4ColumnButtons(gameID)
+		}
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseUpdateMessage,
+			Data: &discordgo.InteractionResponseData{
+				Content:    content,
+				Components: components,
+			},
+		})
+		if game.Result == redWin || game.Result == yellowWin || game.Result == draw {
+			delete(connect4Games, gameID)
+		}
+	}
 }
 
 func messageCreate(sh *stenchHandler) func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -122,7 +270,7 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	dealerCards = append(dealerCards, dealerCard)
 	playerCards = append(playerCards, playerCard)
 	if i.User == nil {
-		games[i.Member.User.ID] = &game{
+		blackjackGames[i.Member.User.ID] = &blackjack{
 			PlayerID:    i.Member.User.ID,
 			Deck:        deck,
 			DealerCards: dealerCards,
@@ -130,7 +278,7 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 			Result:      "Playing",
 		}
 	} else {
-		games[i.User.ID] = &game{
+		blackjackGames[i.User.ID] = &blackjack{
 			PlayerID:    i.User.ID,
 			Deck:        deck,
 			DealerCards: dealerCards,
@@ -165,8 +313,8 @@ func blackjackMessage(s *discordgo.Session, i *discordgo.InteractionCreate, om o
 	}
 }
 
-// buildContent formats the message content string based on the current game state.
-func buildContent(g *game, playerScore, dealerScore int) string {
+// buildBlackJackContent formats the message content string based on the current game state.
+func buildBlackJackContent(g *blackjack, playerScore, dealerScore int) string {
 	switch g.Result {
 	case "DealerWin":
 		return fmt.Sprintf(
@@ -203,7 +351,7 @@ func blackjackReset(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	// Remove old game (no-op if missing, e.g. after bot restart)
-	delete(games, userID)
+	delete(blackjackGames, userID)
 
 	// Deal a fresh game
 	d := newDeck()
@@ -216,7 +364,7 @@ func blackjackReset(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	dealerCards := []string{dealerCard1, dealerCard2}
 	playerCards := []string{playerCard1, playerCard2}
 
-	games[userID] = &game{
+	blackjackGames[userID] = &blackjack{
 		PlayerID:    userID,
 		Deck:        d,
 		DealerCards: dealerCards,
@@ -254,6 +402,11 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		return
 	}
 
+	if strings.HasPrefix(data.CustomID, "c4-") {
+		handleConnect4Button(s, i, data.CustomID)
+		return
+	}
+
 	var userID string
 	if i.User == nil {
 		userID = i.Member.User.ID
@@ -261,7 +414,7 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		userID = i.User.ID
 	}
 
-	g := games[userID]
+	g := blackjackGames[userID]
 	var playerScore, dealerScore int
 	switch data.CustomID {
 	case "hit-btn":
@@ -272,7 +425,7 @@ func handleButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	fmt.Println(g.PlayerCards, g.DealerCards)
 
-	content := buildContent(g, playerScore, dealerScore)
+	content := buildBlackJackContent(g, playerScore, dealerScore)
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
 		Data: &discordgo.InteractionResponseData{
@@ -303,7 +456,6 @@ func main() {
 		fmt.Println(err)
 		panic("can't start stench server")
 	}
-	defer fmt.Println(cmd.CombinedOutput())
 	conn := starttcp()
 	fmt.Println(conn, "connection")
 	session, _ := discordgo.New("Bot " + *Token)
@@ -322,6 +474,9 @@ func main() {
 		case "blackjack":
 			fmt.Println("blackjack command received")
 			handleBlackjack(s, i, parseOptions(data.Options))
+		case "connect4":
+			fmt.Println("connect4 command received")
+			handleConnect4(s, i)
 		default:
 			return
 		}
@@ -349,8 +504,13 @@ func main() {
 	}
 
 	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, os.Interrupt)
+	signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
 	<-sigch
+
+	if cmd.Process != nil {
+		cmd.Process.Kill()
+	}
+	conn.Close()
 
 	err = session.Close()
 	if err != nil {

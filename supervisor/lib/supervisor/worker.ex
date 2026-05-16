@@ -28,10 +28,29 @@ defmodule Supervisor.Worker do
 
   @impl true
   def init(state) do
-    # Start the geofbot process
+    Process.flag(:trap_exit, true)
     p = start_geofbot(state)
     IO.inspect(p)
     {:ok, p}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    case Map.get(state, :port) do
+      nil ->
+        :ok
+
+      port ->
+        case :erlang.port_info(port, :os_pid) do
+          {:os_pid, os_pid} ->
+            :os.cmd(String.to_charlist("kill -TERM #{os_pid}"))
+
+          _ ->
+            :ok
+        end
+
+        Port.close(port)
+    end
   end
 
   @impl true

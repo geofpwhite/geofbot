@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type game struct {
+type blackjack struct {
 	ID          string
 	PlayerID    string
 	Deck        deck
@@ -17,7 +17,7 @@ type game struct {
 	Result      string
 }
 
-func (g *game) hit() (int, int) {
+func (g *blackjack) hit() (int, int) {
 	// zone := tracy.Zone("game.hit")
 	// defer zone.End()
 	playerCard, newDeck := g.Deck.deal()
@@ -26,13 +26,13 @@ func (g *game) hit() (int, int) {
 	return g.react(true)
 }
 
-func (g *game) stay() (int, int) {
+func (g *blackjack) stay() (int, int) {
 	// zone := tracy.Zone("game.stay")
 	// defer zone.End()
 	return g.react(false)
 }
 
-func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
+func (g *blackjack) react(playerHit bool) (playerScore int, dealerScore int) {
 	// zone := tracy.Zone("game.react")
 	// defer zone.End()
 	defer func() {
@@ -104,7 +104,7 @@ func (g *game) react(playerHit bool) (playerScore int, dealerScore int) {
 	return
 }
 
-var games = make(map[string]*game)
+var blackjackGames = make(map[string]*blackjack)
 
 var cardValues = map[string]int{
 	"2":  2,
