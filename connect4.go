@@ -127,8 +127,8 @@ func (g *connect4) scanForWin() {
 			{cur.coords.x + 1, cur.coords.y - 1},
 		}
 		for i, coords := range toCheck {
-			if coords.x >= 0 && coords.x < 8 && coords.y >= 0 &&
-				coords.y < 8 && g.board[coords.x][coords.y] == team && visited[coords][i] < cur.streak+1 {
+			if coords.x >= 0 && coords.x < 7 && coords.y >= 0 &&
+				coords.y < 7 && g.board[coords.x][coords.y] == team && visited[coords][i] < cur.streak+1 {
 				qn := qNode{i, 2, coords}
 				if cur.directionStreak == i {
 					qn = qNode{cur.directionStreak, cur.streak + 1, coords}
